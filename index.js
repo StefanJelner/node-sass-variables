@@ -38,55 +38,136 @@ function toJSON(value) {
     if (value instanceof sass.SassMap) {
         const obj = value.contents.toObject();
 
-        return Object.keys(obj).reduce((result, key) => ({
-            ...result,
-            [sanitizeKey(key)]: toJSON(obj[key])
-        }), {});
+        return {
+            type: 'SassMap'
+            , value: Object.keys(obj).reduce((result, key) => ({
+                ...result,
+                [sanitizeKey(key)]: toJSON(obj[key])
+            }), {})
+        };
     }
-    if (value instanceof sass.SassList) { return value.asList.toArray().map(item => toJSON(item)); }
+    if (value instanceof sass.SassList) {
+        return { type: 'SassList', value: value.asList.toArray().map(item => toJSON(item)) };
+    }
     if (value instanceof sass.SassColor) {
-        if (value.alpha < 1) { return `rgba(${value.red}, ${value.green}, ${value.blue}, ${value.alpha})`; }
-
-        return color.rgb(value.red, value.green, value.blue).hex().toLowerCase();
+        return {
+            type: 'SassColor'
+            , value: {
+                r: value.red
+                , g: value.green
+                , b: value.blue
+                , a: value.alpha
+                , hex: color.rgb(value.red, value.green, value.blue).hex().toLowerCase()
+            }
+        };
     }
-    if (value instanceof sass.SassString) { return value.text; }
-    if ('value' in value) { return value.value; }
+    if (value instanceof sass.SassString) { return { type: 'SassString', value: value.text }; }
+    if (value instanceof sass.SassBoolean) { return { type: 'SassBoolean', value: value.value }; }
+    if (value instanceof sass.SassNumber) {
+        return { type: 'SassNumber', value: value.value, unit: value.numeratorUnits.toArray().join('') };
+    }
+    if ('value' in value) { return { type: 'unknown', value: value.value }; }
 
     return undefined;
 }
 
-function getSassConfig(filepath, sassConfig, callback, safeKeyWord) {
+function getSyntax(filename) {
+    switch(path.parse(filename).ext) {
+        case '.css': { return 'css'; }
+        case '.sass': { return 'indented' }
+        default: { return 'scss'; }
+    }
+}
+
+function getSassConfig(sassConfig, callback, safeKeyWord) {
     return {
         ...typeof sassConfig !== 'undefined' ? sassConfig : {}
         , ...{
             functions: {
-                [`${safeKeyWord}($sassVariables)`]: function([sassVariables]) {
-                    callback(toJSON(sassVariables));
+                ...typeof sassConfig !== 'undefined' && 'functions' in sassConfig ? sassConfig.functions : {}
+                , [`${safeKeyWord}($sassVariables)`]: function([sassVariables]) {
+                    callback(toJSON(sassVariables).value);
 
                     // return anything to not cause an error here.
                     return new sass.SassString('\'\'');
                 }
             }
-            , loadPaths: [path.dirname(filepath)]
+            , importers: [{
+                canonicalize(url) {
+                    const parsed = path.parse(url);
+
+                    return [
+                        `${parsed.base}.sass`
+                        , `${parsed.base}.scss`
+                        , `_${parsed.base}.sass`
+                        , `_${parsed.base}.scss`
+                    ].reduce(
+                        (result, base) => {
+                            const filename = path.resolve(`${__dirname}/${parsed.dir}/${base}`);
+
+                            if (fs.existsSync(filename)) { return new URL(filename); }
+
+                            return result;
+                        }
+                        , null
+                    );
+                }
+                , load(canonicalUrl) {
+                    const filename = decodeURI(canonicalUrl.href);
+
+                    return { contents: getSassContent(filename), syntax: getSyntax(filename) };
+                }
+            }].concat(...typeof sassConfig !== 'undefined' && 'importers' in sassConfig ? sassConfig.importers : [])
         }
     };
 }
 
+function getLoadPaths(filepath, sassConfig) {
+    return {
+        ...typeof sassConfig !== 'undefined' ? sassConfig : {}
+        , ...{
+            loadPaths: [path.dirname(filepath)].concat(
+                ...typeof sassConfig !== 'undefined' && 'loadPaths' in sassConfig ? sassConfig.loadPaths : []
+            )
+        }
+    }
+}
+
 function getSassVariablesSync(filepath, postCssConfig, sassConfig, safeKeyWord) {
-    const sassContent = getSassContent(filepath);
-    const sassVariables = {};
+    filepath = path.resolve(filepath);
+
+    return getSassVariablesStringSync(
+        getSassContent(filepath)
+        , postCssConfig
+        , getLoadPaths(filepath, sassConfig)
+        , safeKeyWord
+    );
+}
+
+function getSassVariablesAsync(filepath, postCssConfig, sassConfig, safeKeyWord) {
+    filepath = path.resolve(filepath);
+
+    return getSassVariablesStringAsync(
+        getSassContent(filepath)
+        , postCssConfig
+        , getLoadPaths(filepath, sassConfig)
+        , safeKeyWord
+    )
+}
+
+function getSassVariablesStringSync(sassContent, postCssConfig, sassConfig, safeKeyWord) {
+    let sassVariables = {};
     safeKeyWord = getSafeKeyword(safeKeyWord);
 
     sass.compileString(
         getNewSassContent(
             sassContent
             // PostCSS process function returns a promise or css for synchronous use.
-            , postcss().process(sassContent, getPostCssConfig(postCssConfig)).css
+            , postcss().process(sassContent, getPostCssConfig(postCssConfig)).sync()
             , safeKeyWord
         )
         , getSassConfig(
-            filepath
-            , sassConfig
+            sassConfig
             , sassVariables2 => {
                 // very ugly mutation of the variable in the outer scope here. but it is the only simple solution.
                 sassVariables = sassVariables2;
@@ -98,17 +179,15 @@ function getSassVariablesSync(filepath, postCssConfig, sassConfig, safeKeyWord) 
     return sassVariables;
 }
 
-function getSassVariablesAsync(filepath, postCssConfig, sassConfig, safeKeyWord) {
+function getSassVariablesStringAsync(sassContent, postCssConfig, sassConfig, safeKeyWord) {
     return new Promise(resolve => {
-        const sassContent = getSassContent(filepath);
         safeKeyWord = getSafeKeyword(safeKeyWord);
 
         postcss().process(sassContent, getPostCssConfig(postCssConfig)).then(processed => {
             sass.compileStringAsync(
                 getNewSassContent(sassContent, processed, safeKeyWord)
                 , getSassConfig(
-                    filepath
-                    , sassConfig
+                    sassConfig
                     , sassVariables => resolve(sassVariables)
                     , safeKeyWord
                 )
@@ -118,4 +197,9 @@ function getSassVariablesAsync(filepath, postCssConfig, sassConfig, safeKeyWord)
     });
 }
 
-module.exports = { getSassVariablesAsync, getSassVariablesSync };
+module.exports = {
+    getSassVariablesAsync
+    , getSassVariablesStringAsync
+    , getSassVariablesStringSync
+    , getSassVariablesSync
+};

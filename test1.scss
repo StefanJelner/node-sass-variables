@@ -1,0 +1,27 @@
+@use './test2';
+@import './test3';
+
+$foo: 1;
+$bar: 10px;
+$baz: none;
+$qux: 'string';
+$quux: 10px 20px 30px none 'string';
+$corge: 10px, 20px, 30px, none, 'string';
+$grault: (
+    'garply': (
+        'waldo': 10px
+    )
+    , 'fred': 'string'
+);
+$garply: #000;
+$waldo: rgb(255, 255, 255);
+$fred: rgba(255, 255, 255, 0.5);
+$plugh: $foo;
+
+// reassigning stuff from the @use
+$xyzzy: test2.$xyzzy;
+$thud: test2.$thud;
+
+// reassigning stuff from the @import
+$bla: $bla;
+$blubb: $blubb;
