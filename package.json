@@ -1,0 +1,37 @@
+{
+  "name": "node-sass-variables",
+  "version": "0.0.1",
+  "description": "Exports variables from Sass/Scss-files for usage in node.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StefanJelner/node-sass-variables.git"
+  },
+  "keywords": [
+    "node",
+    "sass",
+    "scss",
+    "vars",
+    "variables",
+    "export",
+    "extract",
+    "access",
+    "json",
+    "javascript"
+  ],
+  "author": "Stefan Jelner",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/StefanJelner/node-sass-variables/issues"
+  },
+  "homepage": "https://github.com/StefanJelner/node-sass-variables#readme",
+  "dependencies": {
+    "color": "^4.2.1",
+    "postcss": "^8.4.7",
+    "postcss-scss": "^4.0.3",
+    "sass": "^1.49.9"
+  }
+}
