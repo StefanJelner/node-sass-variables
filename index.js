@@ -23,7 +23,13 @@ function findSassVariables(processed) {
     const root = processed.root;
     const sassVariables = [];
 
-    root.walkDecls(/^\$/, decl => { if (decl.parent === root) { sassVariables.push(`'${decl.prop}':${decl.prop}`); } });
+    root.walkDecls(/^\$/, decl => {
+		if (decl.parent === root) {
+			const sassVariable = `'${decl.prop}':${decl.prop}`;
+			
+			if (sassVariables.indexOf(sassVariable) === -1) { sassVariables.push(sassVariable); }
+		}
+	});
 
     return sassVariables;
 }

@@ -1,6 +1,6 @@
 {
   "name": "node-sass-variables",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Exports variables from Sass/Scss-files for usage in node.js",
   "main": "index.js",
   "scripts": {
