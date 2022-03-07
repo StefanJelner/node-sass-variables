@@ -30,10 +30,11 @@ getSassVariablesAsync('path/to/my/scss-file.scss').then(console.log);
 
 ## Options
 
-`getSassVariablesStringSync`, `getSassVariablesStringAsync`, `getSassVariablesSync` and `getSassVariablesAsync` accept the same options:
-
-```
-getSassVariables[StringSync | StringAsync | Sync | Async](sass or filepath, postCssConfig, sassConfig, safeKeyWord)
+```js
+getSassVariablesAsync(filepath, postCssConfig, sassConfig, safeKeyWord)
+getSassVariablesStringAsync(sass, postCssConfig, sassConfig, safeKeyWord)
+getSassVariablesStringSync(sass, postCssConfig, sassConfig, safeKeyWord)
+getSassVariablesSync(filepath, postCssConfig, sassConfig, safeKeyWord)
 ```
 
 ### `sass` (string, mandatory) or `filepath` (string, mandatory)

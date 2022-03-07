@@ -8,10 +8,28 @@ const color = require('color');
 // it is assumed, that this variable or function name is never used in Sass.
 const defaultSafeKeyWord = '__nirvana__';
 
+/**
+ * Loads the Sass file content
+ * 
+ * @param {string} filepath path to the Sass file
+ * @returns Sass file content
+ */
 function getSassContent(filepath) { return fs.readFileSync(filepath, 'utf8'); }
 
+/**
+ * Gets the safe keyword for the variable and custom Sass function
+ * 
+ * @param {string} safeKeyWord optional user provided safe keyword
+ * @returns safe keyword
+ */
 function getSafeKeyword(safeKeyWord) { return typeof safeKeyWord !== 'undefined' ? safeKeyWord : defaultSafeKeyWord; }
 
+/**
+ * Gets PostCSS configuration with some configurations which are necessary to run this module
+ * 
+ * @param {postcss.ProcessOptions} postCssConfig user provided PostCSS configuration
+ * @returns PostCSS configuration
+ */
 function getPostCssConfig(postCssConfig) {
     return {
         ...typeof postCssConfig !== 'undefined' ? postCssConfig : {}
@@ -19,6 +37,13 @@ function getPostCssConfig(postCssConfig) {
     };
 }
 
+/**
+ * Finds the Sass variables in the given content. IMPORTANT! It only finds the variables in the given content, but not
+ * in files imported with `@use` or `@import`. (But variables from the imported files can be used.)  
+ * 
+ * @param {postcss.Result} processed Sass processed by PostCSS
+ * @returns variable declarations for use with the Sass custom function
+ */
 function findSassVariables(processed) {
     const root = processed.root;
     const sassVariables = [];
@@ -34,12 +59,32 @@ function findSassVariables(processed) {
     return sassVariables;
 }
 
+/**
+ * Generates the line of code, which is necessary for passing the variables to the Sass custom function.
+ * 
+ * @param {string} sassContent the Sass content which the user provided
+ * @param {postcss.Result} processed Sass processed by PostCSS
+ * @param {string} safeKeyWord safe keyword for the variable and custom Sass function
+ * @returns the Sass content with an additional call to the Sass custom function
+ */
 function getNewSassContent(sassContent, processed, safeKeyWord) {
     return `${sassContent};$${safeKeyWord}:${safeKeyWord}((${findSassVariables(processed).join(',')}));`;
 }
 
+/**
+ * Removes quotes from strings, which are surrounded by quotes.
+ * 
+ * @param {string} key string, which is surrounded by quotes
+ * @returns string, which is not surrounded by quotes any more
+ */
 function sanitizeKey(key) { return key.replace(/^(["'])(.+)\1$/, '$2'); }
 
+/**
+ * Transforms the parsed variables passed to the Sass custom function into a regular JSON object.
+ * 
+ * @param {sass.Value} value parsed variables passed to the Sass custom function
+ * @returns regular JSON object
+ */
 function toJSON(value) {
     if (value instanceof sass.SassMap) {
         const obj = value.contents.toObject();
@@ -77,14 +122,28 @@ function toJSON(value) {
     return undefined;
 }
 
+/**
+ * Determines which syntax an imported file uses by its filename extension
+ * 
+ * @param {string} filename filename of the imported file
+ * @returns css, indented or scss
+ */
 function getSyntax(filename) {
     switch(path.parse(filename).ext) {
         case '.css': { return 'css'; }
-        case '.sass': { return 'indented' }
+        case '.sass': { return 'indented'; }
         default: { return 'scss'; }
     }
 }
 
+/**
+ * Gets Sass configuration with some configurations which are necessary to run this module
+ * 
+ * @param {sass.StringOptions} sassConfig user provided Sass configuration
+ * @param {(sassVariables: Record<string, any>) => void} callback callback function which handles the final variables
+ * @param {string} safeKeyWord safe keyword for the variable and custom Sass function
+ * @returns Sass configuration
+ */
 function getSassConfig(sassConfig, callback, safeKeyWord) {
     return {
         ...typeof sassConfig !== 'undefined' ? sassConfig : {}
@@ -128,6 +187,13 @@ function getSassConfig(sassConfig, callback, safeKeyWord) {
     };
 }
 
+/**
+ * Adds the `loadPaths` configuration based on the path of the Sass file to a given Sass configuration.
+ * 
+ * @param {string} filepath path to the Sass file
+ * @param {sass.StringOptions} sassConfig user provided Sass configuration
+ * @returns Sass configuration with `loadPaths` configuration
+ */
 function getLoadPaths(filepath, sassConfig) {
     return {
         ...typeof sassConfig !== 'undefined' ? sassConfig : {}
@@ -139,6 +205,15 @@ function getLoadPaths(filepath, sassConfig) {
     }
 }
 
+/**
+ * Gets the Sass variables from a given path to a Sass file synchronously.
+ * 
+ * @param {string} filepath path to the Sass file
+ * @param {postcss.ProcessOptions} postCssConfig user provided PostCSS configuration
+ * @param {sass.StringOptions} sassConfig user provided Sass configuration
+ * @param {string} safeKeyWord safe keyword for the variable and custom Sass function
+ * @returns an object containing the Sass variables
+ */
 function getSassVariablesSync(filepath, postCssConfig, sassConfig, safeKeyWord) {
     filepath = path.resolve(filepath);
 
@@ -150,6 +225,15 @@ function getSassVariablesSync(filepath, postCssConfig, sassConfig, safeKeyWord) 
     );
 }
 
+/**
+ * Gets the Sass variables from a given path to a Sass file asynchronously.
+ * 
+ * @param {string} filepath path to the Sass file
+ * @param {postcss.ProcessOptions} postCssConfig user provided PostCSS configuration
+ * @param {sass.StringOptions} sassConfig user provided Sass configuration
+ * @param {string} safeKeyWord safe keyword for the variable and custom Sass function
+ * @returns a Promise which resolves an object containing the Sass variables
+ */
 function getSassVariablesAsync(filepath, postCssConfig, sassConfig, safeKeyWord) {
     filepath = path.resolve(filepath);
 
@@ -161,6 +245,15 @@ function getSassVariablesAsync(filepath, postCssConfig, sassConfig, safeKeyWord)
     )
 }
 
+/**
+ * Gets the Sass variables from a given Sass content as a string synchronously.
+ * 
+ * @param {string} sassContent Sass content as a string
+ * @param {postcss.ProcessOptions} postCssConfig user provided PostCSS configuration
+ * @param {sass.StringOptions} sassConfig user provided Sass configuration
+ * @param {string} safeKeyWord safe keyword for the variable and custom Sass function
+ * @returns an object containing the Sass variables
+ */
 function getSassVariablesStringSync(sassContent, postCssConfig, sassConfig, safeKeyWord) {
     let sassVariables = {};
     safeKeyWord = getSafeKeyword(safeKeyWord);
@@ -185,6 +278,15 @@ function getSassVariablesStringSync(sassContent, postCssConfig, sassConfig, safe
     return sassVariables;
 }
 
+/**
+ * Gets the Sass variables from a given Sass content as a string asynchronously.
+ * 
+ * @param {string} sassContent Sass content as a string
+ * @param {postcss.ProcessOptions} postCssConfig user provided PostCSS configuration
+ * @param {sass.StringOptions} sassConfig user provided Sass configuration
+ * @param {string} safeKeyWord safe keyword for the variable and custom Sass function
+ * @returns a Promise which resolves an object containing the Sass variables
+ */
 function getSassVariablesStringAsync(sassContent, postCssConfig, sassConfig, safeKeyWord) {
     return new Promise(resolve => {
         safeKeyWord = getSafeKeyword(safeKeyWord);
