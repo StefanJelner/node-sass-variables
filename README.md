@@ -58,3 +58,7 @@ This is a keyword, which is used internally by this module to pass the variables
 Variables from files which are imported with `@use` or `@import` are useable, but not automatically exported, because only the variables declared in the Sass/Scss content or the `filepath` are exported.
 
 This module tries its best to determine, where external files might be located and tries to import them. If this fails, it might be necessary to provide your own `loadPaths` or `importers` to the `sassConfig`.
+
+## License
+
+This software is brought to you with :heart: **love** :heart: from Dortmund and offered and distributed under the ISC license. See `LICENSE.txt` and [Wikipedia](https://en.wikipedia.org/wiki/ISC_license) for more information.

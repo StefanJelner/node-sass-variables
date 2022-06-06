@@ -3,13 +3,14 @@ const {
     , getSassVariablesStringAsync
     , getSassVariablesStringSync
     , getSassVariablesSync
+    , toJSON
 } = require('node-sass-variables');
 const fs = require('fs');
 const path = require('path');
 
 const filepath = './test1.scss';
 
-const scss = fs.readFileSync(filepath, 'utf8');;
+const scss = fs.readFileSync(filepath, 'utf8');
 
 function tests(tmp) {
     const foo = {
@@ -144,5 +145,13 @@ describe('node-sass-variables', () => {
             tests(tmp);
             done();
         });
+    });
+
+    it('should return an unknown value, if the value is no instance of a known type, but contains a value key', () => {
+        expect(toJSON({ value: 1 })).toStrictEqual({ type: 'unknown', value: 1 });
+    });
+
+    it('should return an unknown value, if the value is no instance of a known type', () => {
+        expect(toJSON(1)).toStrictEqual(undefined);
     });
 });

@@ -117,7 +117,7 @@ function toJSON(value) {
     if (value instanceof sass.SassNumber) {
         return { type: 'SassNumber', value: value.value, unit: value.numeratorUnits.toArray().join('') };
     }
-    if ('value' in value) { return { type: 'unknown', value: value.value }; }
+    if (typeof value === 'object' && 'value' in value) { return { type: 'unknown', value: value.value }; }
 
     return undefined;
 }
@@ -310,4 +310,5 @@ module.exports = {
     , getSassVariablesStringAsync
     , getSassVariablesStringSync
     , getSassVariablesSync
+    , ...typeof jest !== 'undefined' && { toJSON }
 };
